@@ -1,0 +1,1 @@
+run ```sbt "run-main lab.Server"```
