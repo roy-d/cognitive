@@ -34,7 +34,7 @@ class TextAnalytics(textAnalyticsConf: TextAnalyticsConfig) extends Actor with A
           relation.getType -> relation.getScore
       ).toMap.toString.replace("Map", "").replace(" -> ", ":")
 
-      sender() ! TextAnalyticsResponse(s"Sentiment=$sentimentSummary, Entities=$entitySummary, Typed Relations=$relationSummary", payload)
+      sender() ! TextAnalyticsResponse(s"Entities=$entitySummary, Relations=$relationSummary, Sentiment=$sentimentSummary", payload)
   }
 }
 

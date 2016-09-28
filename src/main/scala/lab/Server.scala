@@ -2,6 +2,7 @@ package lab
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import lab.NLClassifier.NLClassifierConfig
 import lab.PersonalityAnalytics.PersonalityAnalyticsConfig
 import lab.TextAnalytics.TextAnalyticsConfig
 import lab.ToneAnalytics.ToneAnalyticsConfig
@@ -25,10 +26,11 @@ object Server extends App {
   val toneAnalyticsConfig = ToneAnalyticsConfig(config.getString("cognitive.watson.tone.username"), config.getString("cognitive.watson.tone.password"))
   val textAnalyticsConfig = TextAnalyticsConfig(config.getString("cognitive.watson.alchemy.apikey"))
   val personalityAnalyticsConfig = PersonalityAnalyticsConfig(config.getString("cognitive.watson.personality.username"), config.getString("cognitive.watson.personality.password"))
+  val nlClassifierConfig = NLClassifierConfig(config.getString("cognitive.watson.nlc.username"), config.getString("cognitive.watson.nlc.password"))
 
   val system = ActorSystem("CognitiveSystem")
   val twitterBot = system.actorOf(TwitterBot.props(
-    TwitterBotConfig(twitterConf, toneAnalyticsConfig, textAnalyticsConfig, personalityAnalyticsConfig)
+    TwitterBotConfig(twitterConf, toneAnalyticsConfig, textAnalyticsConfig, personalityAnalyticsConfig, nlClassifierConfig)
   ), "twitterBot")
 
   twitterStream.addListener(new StatusListener() {

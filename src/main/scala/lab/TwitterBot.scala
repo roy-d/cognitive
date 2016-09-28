@@ -1,6 +1,7 @@
 package lab
 
 import akka.actor.{Actor, ActorLogging, Props}
+import lab.NLClassifier.{NLClassifierConfig, NLClassifierResponse}
 import lab.PersonalityAnalytics.{PersonalityAnalyticsConfig, PersonalityAnalyticsResponse}
 import lab.TextAnalytics.{TextAnalyticsConfig, TextAnalyticsResponse}
 import lab.ToneAnalytics.{ToneAnalyticsConfig, ToneAnalyticsResponse}
@@ -16,6 +17,7 @@ class TwitterBot(twitterBotConfig: TwitterBotConfig) extends Actor with ActorLog
   val toneAnalyzer = context.actorOf(ToneAnalytics.props(twitterBotConfig.toneAnalyticsConf), "toneAnalyzer")
   val textAnalyzer = context.actorOf(TextAnalytics.props(twitterBotConfig.textAnalyticsConf), "textAnalyzer")
   val personalityAnalyzer = context.actorOf(PersonalityAnalytics.props(twitterBotConfig.personalityAnalyticsConf), "personalityAnalyzer")
+  val nlClassifier = context.actorOf(NLClassifier.props(twitterBotConfig.nlClassifierConf), "nlClassifier")
 
   val auth = new OAuthAuthorization(twitterBotConfig.twitterConf)
   val twitter = new TwitterFactory().getInstance(auth)
@@ -25,6 +27,8 @@ class TwitterBot(twitterBotConfig: TwitterBotConfig) extends Actor with ActorLog
       log.info(s"<<< ${payload.user} |${payload.tweet}|")
       toneAnalyzer ! payload
       textAnalyzer ! payload
+      nlClassifier ! payload
+      
       val page = new Paging(1, 200)
       val history = twitter.getUserTimeline(payload.user, page).toList.map(
         status =>
@@ -40,6 +44,10 @@ class TwitterBot(twitterBotConfig: TwitterBotConfig) extends Actor with ActorLog
     case toneAnalyticsResponse: ToneAnalyticsResponse =>
       log.info(s">>> ${toneAnalyticsResponse.payload.user}|${toneAnalyticsResponse.response}|")
       tweet(s"@${toneAnalyticsResponse.payload.user}: Tone=${toneAnalyticsResponse.response}", toneAnalyticsResponse.payload.id)
+
+    case nlClassifierResponse: NLClassifierResponse =>
+      log.info(s">>> ${nlClassifierResponse.payload.user}|${nlClassifierResponse.response}|")
+      tweet(s"@${nlClassifierResponse.payload.user}: NLC=${nlClassifierResponse.response}", nlClassifierResponse.payload.id)
 
     case personalityAnalyticsResponse: PersonalityAnalyticsResponse =>
       log.info(s">>> ${personalityAnalyticsResponse.payload.user}|${personalityAnalyticsResponse.response}|")
@@ -69,7 +77,8 @@ object TwitterBot {
                                twitterConf: Configuration,
                                toneAnalyticsConf: ToneAnalyticsConfig,
                                textAnalyticsConf: TextAnalyticsConfig,
-                               personalityAnalyticsConf: PersonalityAnalyticsConfig
+                               personalityAnalyticsConf: PersonalityAnalyticsConfig,
+                               nlClassifierConf: NLClassifierConfig
                              )
 
   case class Payload(user: String, tweet: String, id: String, oldTweets: Option[String])
