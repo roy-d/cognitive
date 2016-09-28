@@ -25,7 +25,7 @@ class TextAnalytics(textAnalyticsConf: TextAnalyticsConfig) extends Actor with A
       val entities = service.getEntities(params).execute()
       val entitySummary = entities.getEntities.toList.map(
         entity =>
-          entity.getText ->(entity.getType, Try(entity.getDisambiguated.getSubType.toList.head).getOrElse(""))
+          entity.getText ->(entity.getType, Try(entity.getDisambiguated.getSubType.toList.take(3)).getOrElse(""))
       ).toMap.toString.replace("Map", "").replace(" -> ", ":")
 
       val relations = service.getTypedRelations(params).execute()
@@ -34,7 +34,7 @@ class TextAnalytics(textAnalyticsConf: TextAnalyticsConfig) extends Actor with A
           relation.getType -> relation.getScore
       ).toMap.toString.replace("Map", "").replace(" -> ", ":")
 
-      sender() ! TextAnalyticsResponse(s"Sent=$sentimentSummary, Ent=$entitySummary, Rel=$relationSummary", payload)
+      sender() ! TextAnalyticsResponse(s"Sentiment=$sentimentSummary, Entities=$entitySummary, Typed Relations=$relationSummary", payload)
   }
 }
 
@@ -44,5 +44,5 @@ object TextAnalytics {
 
   case class TextAnalyticsResponse(response: String, payload: Payload)
 
-  def props(alchemyConf: TextAnalyticsConfig): Props = Props(new TextAnalytics(alchemyConf))
+  def props(textAnalyticsConf: TextAnalyticsConfig): Props = Props(new TextAnalytics(textAnalyticsConf))
 }

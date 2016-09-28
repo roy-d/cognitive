@@ -2,9 +2,10 @@ package lab
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import lab.PersonalityAnalytics.PersonalityAnalyticsConfig
 import lab.TextAnalytics.TextAnalyticsConfig
-import lab.TwitterBot.{Payload, TwitterBotConfig}
 import lab.ToneAnalytics.ToneAnalyticsConfig
+import lab.TwitterBot.{Payload, TwitterBotConfig}
 import twitter4j._
 import twitter4j.conf.ConfigurationBuilder
 
@@ -20,14 +21,19 @@ object Server extends App {
 
   val twitterConf = configurationBuilder.build()
   val twitterStream = new TwitterStreamFactory(twitterConf).getInstance()
-  val tonerConfig = ToneAnalyticsConfig(config.getString("cognitive.watson.tone.username"), config.getString("cognitive.watson.tone.password"))
-  val alchemyConfig = TextAnalyticsConfig(config.getString("cognitive.watson.alchemy.apikey"))
+
+  val toneAnalyticsConfig = ToneAnalyticsConfig(config.getString("cognitive.watson.tone.username"), config.getString("cognitive.watson.tone.password"))
+  val textAnalyticsConfig = TextAnalyticsConfig(config.getString("cognitive.watson.alchemy.apikey"))
+  val personalityAnalyticsConfig = PersonalityAnalyticsConfig(config.getString("cognitive.watson.personality.username"), config.getString("cognitive.watson.personality.password"))
+
   val system = ActorSystem("CognitiveSystem")
-  val twitterBot = system.actorOf(TwitterBot.props(TwitterBotConfig(twitterConf, tonerConfig, alchemyConfig)), "twitterBot")
+  val twitterBot = system.actorOf(TwitterBot.props(
+    TwitterBotConfig(twitterConf, toneAnalyticsConfig, textAnalyticsConfig, personalityAnalyticsConfig)
+  ), "twitterBot")
 
   twitterStream.addListener(new StatusListener() {
     override def onStatus(status: Status) =
-      twitterBot ! Payload(status.getUser.getScreenName, status.getText.replace(hashTag, ""), status.getId.toString.takeRight(8))
+      twitterBot ! Payload(status.getUser.getScreenName, status.getText.replace(hashTag, ""), status.getId.toString.takeRight(8), None)
 
     override def onStallWarning(warning: StallWarning): Unit = sys.error(warning.toString)
 
