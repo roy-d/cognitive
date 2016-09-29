@@ -3,6 +3,7 @@ package lab
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
+import lab.Conversation.{ConversationConfig, ConversationResponse}
 import lab.NLClassifier.{NLClassifierConfig, NLClassifierResponse}
 import lab.PersonalityAnalytics.{PersonalityAnalyticsConfig, PersonalityAnalyticsResponse}
 import lab.TextAnalytics.{TextAnalyticsConfig, TextAnalyticsResponse}
@@ -25,14 +26,29 @@ class TwitterBotSpec
 
   import TwitterBotSpec._
 
-  val tweetBotRef = system.actorOf(Props(classOf[TwitterBot], TwitterBotConfig(twitterConf, toneAnalyticsConfig, textAnalyticsConfig, personalityAnalyticsConfig, nlClassifierConfig)))
+  val tweetBotRef = system.actorOf(Props(classOf[TwitterBot], TwitterBotConfig(twitterConf, toneAnalyticsConfig, textAnalyticsConfig, personalityAnalyticsConfig, nlClassifierConfig, converseConfig)))
   val toneAnalysisRef = system.actorOf(Props(classOf[ToneAnalytics], toneAnalyticsConfig))
   val textAnalysisRef = system.actorOf(Props(classOf[TextAnalytics], textAnalyticsConfig))
   val nlClassifierRef = system.actorOf(Props(classOf[NLClassifier], nlClassifierConfig))
   val personalityAnalyticsRef = system.actorOf(Props(classOf[PersonalityAnalytics], personalityAnalyticsConfig))
+  val conversationRef = system.actorOf(Props(classOf[Conversation], converseConfig))
 
   override def afterAll {
     shutdown()
+  }
+
+  "A Conversation" should {
+    "Respond with conversation response" in {
+      var messages = Seq[String]()
+      within(5000 millis) {
+        conversationRef ! Payload("roytttr", "hello there", "", None)
+        receiveWhile(5000 millis) {
+          case msg: ConversationResponse => messages = msg.intent +: messages
+        }
+      }
+      messages.length should be(1)
+      println(messages)
+    }
   }
 
   "A ToneAnalyzer" should {
@@ -90,7 +106,7 @@ class TwitterBotSpec
       println(messages)
     }
   }
-  
+
   "A TwitterBot" should {
     "not respond" ignore {
       within(5000 millis) {
@@ -121,5 +137,7 @@ object TwitterBotSpec {
   val textAnalyticsConfig = TextAnalyticsConfig(cognitiveConfig.getString("cognitive.watson.alchemy.apikey"))
   val personalityAnalyticsConfig = PersonalityAnalyticsConfig(cognitiveConfig.getString("cognitive.watson.personality.username"), cognitiveConfig.getString("cognitive.watson.personality.password"))
   val nlClassifierConfig = NLClassifierConfig(cognitiveConfig.getString("cognitive.watson.nlc.username"), cognitiveConfig.getString("cognitive.watson.nlc.password"))
+  val converseConfig = ConversationConfig(cognitiveConfig.getString("cognitive.watson.converse.username"), cognitiveConfig.getString("cognitive.watson.converse.password"), cognitiveConfig.getString("cognitive.watson.converse.workspace"))
+
 
 }
