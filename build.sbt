@@ -4,6 +4,10 @@ version := "1.0"
 
 scalaVersion := "2.11.8"
 
+fork in run := true
+
+connectInput in run := true
+
 libraryDependencies ++= Seq(
   "org.twitter4j" % "twitter4j-stream" % "4.0.5",
   "com.typesafe" % "config" % "1.3.0",
